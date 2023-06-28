@@ -51,10 +51,10 @@ namespace StudentAdminPortal.API.Controllers
                 var updateStudent = await _studentRepository.UpdateStudentAsync(studentId, _mapper.Map<Student>(request));
                 if (updateStudent == null)
                 {
-                    return Ok(_mapper.Map<StudentDTO>(updateStudent));
+                    return Ok();
                 }
+                return Ok(_mapper.Map<StudentDTO>(updateStudent));
 
-                return Ok();
             }
             return NotFound();
         }
