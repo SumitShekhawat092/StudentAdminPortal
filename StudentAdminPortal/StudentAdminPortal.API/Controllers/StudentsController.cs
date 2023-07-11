@@ -12,10 +12,13 @@ namespace StudentAdminPortal.API.Controllers
     {
         private readonly IStudentRepository _studentRepository;
         public readonly IMapper _mapper;
-        public StudentsController(IStudentRepository studentRepository, IMapper mapper)
+        private readonly IImageRepository _imageRepository;
+
+        public StudentsController(IStudentRepository studentRepository, IMapper mapper, IImageRepository imageRepository)
         {
             _studentRepository = studentRepository;
             _mapper = mapper;
+            _imageRepository = imageRepository;
         }
 
         [HttpGet]
@@ -77,6 +80,28 @@ namespace StudentAdminPortal.API.Controllers
         {
             var newStudent = await _studentRepository.AddStudentAsync(_mapper.Map<Student>(request));
             return CreatedAtAction(nameof(GetStudentAsync), new { studentId = newStudent.Id}, _mapper.Map<StudentDTO>(newStudent));
+        }
+
+        [HttpPost]
+        [Route("[controller]/{studentId:guid}/upload-image")]
+        public async Task<IActionResult> UploadImage([FromRoute] Guid studentId, IFormFile profileImage)
+        {
+            //check if student exist
+            if (await _studentRepository.ExistsAsync(studentId))
+            {
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
+                //upload image to local storage
+               var fileImagePath = await _imageRepository.Upload(profileImage, fileName);
+
+                //update the profile path to the database
+                if (await _studentRepository.UpdateProfileImageAsync(studentId, fileImagePath))
+                {
+                    return Ok(fileImagePath);
+                }
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error Uploading Profile Image");
+            }
+            else
+                return NotFound();
         }
     }
 }
