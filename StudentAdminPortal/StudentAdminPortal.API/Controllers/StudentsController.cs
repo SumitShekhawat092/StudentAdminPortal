@@ -79,26 +79,36 @@ namespace StudentAdminPortal.API.Controllers
         public async Task<IActionResult> AddStudentAsync([FromBody] AddStudentRequest request)
         {
             var newStudent = await _studentRepository.AddStudentAsync(_mapper.Map<Student>(request));
-            return CreatedAtAction(nameof(GetStudentAsync), new { studentId = newStudent.Id}, _mapper.Map<StudentDTO>(newStudent));
+            return CreatedAtAction(nameof(GetStudentAsync), new { studentId = newStudent.Id }, _mapper.Map<StudentDTO>(newStudent));
         }
 
         [HttpPost]
         [Route("[controller]/{studentId:guid}/upload-image")]
         public async Task<IActionResult> UploadImage([FromRoute] Guid studentId, IFormFile profileImage)
         {
-            //check if student exist
-            if (await _studentRepository.ExistsAsync(studentId))
+            var validExtensions = new List<string> { ".jpeg", ".jpg", ".gif", ".png" };
+            if (profileImage != null && profileImage.Length > 0)
             {
-                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
-                //upload image to local storage
-               var fileImagePath = await _imageRepository.Upload(profileImage, fileName);
+                var extension = Path.GetExtension(profileImage.FileName);
 
-                //update the profile path to the database
-                if (await _studentRepository.UpdateProfileImageAsync(studentId, fileImagePath))
+                if (validExtensions.Contains(extension))
                 {
-                    return Ok(fileImagePath);
+                    //check if student exist
+                    if (await _studentRepository.ExistsAsync(studentId))
+                    {
+                        var fileName = Guid.NewGuid().ToString() + Path.GetExtension(profileImage.FileName);
+                        //upload image to local storage
+                        var fileImagePath = await _imageRepository.Upload(profileImage, fileName);
+
+                        //update the profile path to the database
+                        if (await _studentRepository.UpdateProfileImageAsync(studentId, fileImagePath))
+                        {
+                            return Ok(fileImagePath);
+                        }
+                        return StatusCode(StatusCodes.Status500InternalServerError, "Error Uploading Profile Image");
+                    }
                 }
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error Uploading Profile Image");
+                return BadRequest("This is not valid image format");
             }
             else
                 return NotFound();

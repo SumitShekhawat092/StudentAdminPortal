@@ -396,3 +396,4 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+StudentAdminPortal/StudentAdminPortal.API/Resources/Images/
